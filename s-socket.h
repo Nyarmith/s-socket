@@ -1,10 +1,14 @@
-// TODO: Add fancy header with authorship and licensing info, flags descriptions under fns that accept flags
+// This file provides the S-Socket C API, a cross-platform socket wrapper library
+// // Copyright (C) 2020 Sergey Ivanov
+
+// Use, modification, and distribution is subject to the MIT License
+// See accompanying file LICENSE_1_0.txt
+// ------------------------------------------------------------------------------
 
 
 // ---------------------
 // ---- Address API ----
 // ---------------------
-
 
 /**
  * The address API just consists of the AddrInfo type and a few helpers
@@ -54,6 +58,13 @@ int getport(struct AddrInfo *in);
  * and a recv function that operates on a bound socket. UDP provides no guarantees
  * of delivery or duplication protection, so we're basically spamming packets to a
  * network interface
+ *
+ * UDP socket flow goes something like..
+ *
+ * client: populate address -> make socket -> send using socket to address -> free sock
+ *
+ * server: populate local address -> make socket -> bind socket to our addr --
+ *          --> recv, maybe respond (by doing the client steps) -> free socket
  */
 struct UDPSocket;
 
@@ -116,6 +127,18 @@ int udp_free(TCPSocket* sock);
  * The TCP API is more complicated than the UDP API; instead of just sending packets to a destination, we
  * maintain an open session with a client and are guaranteed that packets are received in the same order that
  * they are sent
+ *
+ * TCP socket flow goes something like..
+ *
+ * client: populate address info -> make socket -> connect socket -> send and recv -> free socket
+ *
+ * server: populate local addr -> make socket -> bind locally -> listen for connections --
+ *           --> receive or send from the established connection -> free socket
+ *
+ * The main notable difference from udp programatically is that you can recv and send on the same socket
+ * once a connection iE established. Because it's bidirectional and both client/server can do this, you 
+ * need to have a well established order of operations (protocol) for sending and receiving so you don't
+ * end up in socket spinlock
  */
 struct TCPSocket;
 
@@ -142,14 +165,20 @@ int tcp_listen(struct TCPSocket *sock,
 /**
  * connect is like bind() but for a client; it establishes a maintained connection that lets us continually
  * send and receive data without interruption.
- *
- * Returns zero on success.
+ * @param sock An inactive socket
+ * @param dest A description of our client
+ * @return zero on success.
  */
 int tcp_connect(struct TCPSocket *sock,
                 struct AddrInfo *dest);
 
 /**
- * sends buffer msgbuf of size buflen over active socket sock
+ * Sends buffer msgbuf of size buflen over active socket sock
+ * @param sock a tcp socket that must have an established connection
+ * @param msgbuf A pointer to the data we're sending
+ * @param buflen How many bytes we're sending from msgbuf
+ * @param flags
+ * @return bytes sent
  */
 int tcp_send(struct TCPSocket *sock,
                 void *msgbuf,
@@ -158,6 +187,11 @@ int tcp_send(struct TCPSocket *sock,
 
 /**
  * Receives incoming traffic on tcp connections
+ * @param sock a tcp socket that must have an established connection
+ * @param msgbuf A pointer to where we store the data we're receiving
+ * @param buflen The size of our buffer; the max size we will store per call to recv
+ * @param flags
+ * @return The bytes we've received and stored in msgbuf
  */
 int tcp_recv(struct TCPSocket *sock,
                 void *msgbuf,
@@ -169,3 +203,12 @@ int tcp_recv(struct TCPSocket *sock,
  * @return non-zero on failure
  */
 int tcp_free(TCPSocket* sock);
+
+
+/**
+ * Get a string description of an error
+ * @return null-terminated error string
+ */
+char* get_error(int errnum);
+
+// TODO: Add flags enums, figure out if bytes received is same as bytes stored, https://stackoverflow.com/questions/4160347/close-vs-shutdown-socket
