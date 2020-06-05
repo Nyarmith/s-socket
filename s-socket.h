@@ -2,7 +2,7 @@
 // // Copyright (C) 2020 Sergey Ivanov
 
 // Use, modification, and distribution is subject to the MIT License
-// See accompanying file LICENSE_1_0.txt
+// See accompanying file LICENSE
 // ------------------------------------------------------------------------------
 
 
