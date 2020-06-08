@@ -131,13 +131,11 @@ int udp_free(struct UDPSocket* sock);
  * Here we can set special socket options
  * 
  * @param sock The socket
- * @param flags Flag we want to set
- * @param option_value Pointer to the value we want to set, if we're setting a flag with a value
- * @param option_len size of argument we're passing
+ * @param mod Option we want to set
+ * mod_value Pointer to the value we want to set, if we're setting a flag with a value
  * @return zero on success.
  */
-int udp_mod_sock(struct TCPSocket *sock, int flags,
-                 const void *option_value, size_t option_len);
+int udp_mod_sock(struct TCPSocket *sock, int mod, int mod_value);
 
 enum {
     UDP_MOD_BROADCAST,  // Permit sending of broadcast messages, takes an int value which is treated like a boolean
@@ -245,16 +243,14 @@ int tcp_free(struct TCPSocket* sock);
  * Here we can set special socket options
  * 
  * @param sock The socket
- * @param flags Flag we want to set
- * @param option_value Pointer to the value we want to set, if we're setting a flag with a value
- * @param option_len size of argument we're passing
+ * @param mod Option we want to set
+ * @param mod_value Value we want to set for the option
  * @return zero on success.
  */
-int tcp_mod_sock(struct TCPSocket *sock, int flags,
-                 const void *option_value, size_t option_len);
+int tcp_mod_sock(struct TCPSocket *sock, int mod, int mod_value);
 
 enum {
-    TCP_MOD_KEEPALIVE,  // Keeps connections active by enabling periodic transmission of messages, takes int value
+    TCP_MOD_KEEPALIVE,  // Keeps connections active by enabling periodic transmission of messages, treated like a bool, 0 by default
     TCP_MOD_DONTROUTE,  // Request that outgoing messages bypass standard routing
     TCP_MOD_RCVTIMEO,   // Sets the timeout, in milliseconds, for blocking receive calls
 }
