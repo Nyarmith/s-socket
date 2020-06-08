@@ -5,6 +5,7 @@
 // See accompanying file LICENSE
 // ------------------------------------------------------------------------------
 
+#include <stddef.h>
 
 // ---------------------
 // ---- Address API ----
@@ -72,7 +73,7 @@ struct UDPSocket;
  * Creates and returns a socket file descriptor.
  * @return If the system fails in socket creation, we return NULL
  */
-UDPSocket* udp_mksocket();
+struct UDPSocket* udp_mksocket();
 
 /**
  * Sends a buffer msgbuf of size msglen to destInfo over socket sock
@@ -87,6 +88,10 @@ int udp_send(struct UDPSocket *sock,
                 void *msgbuf,
                 size_t msglen,
                 size_t flags);
+
+enum {
+      UDP_SEND_DONTROUTE    // data should not be subjected to routing
+};
 
 /**
  * udp_bind binds a UDPSocket to a local address and port, which is a prerequisite to udp_recv
@@ -112,11 +117,31 @@ int udp_recv(struct UDPSocket *sock,
              size_t flags,
              struct AddrInfo *out);
 
+enum {
+      UDP_RECV_PEEK    // The data is copied into the buffer but is not removed from the input queue,
+};                     //     udp_recv returns the data-size that can be read in a single call
+
 /**
  * Closes a udp socket when you're done with it
  * @return non-zero on failure
  */
-int udp_free(TCPSocket* sock);
+int udp_free(struct UDPSocket* sock);
+
+/**
+ * Here we can set special socket options
+ * 
+ * @param sock The socket
+ * @param flags Flag we want to set
+ * @param option_value Pointer to the value we want to set, if we're setting a flag with a value
+ * @param option_len size of argument we're passing
+ * @return zero on success.
+ */
+int udp_mod_sock(struct TCPSocket *sock, int flags,
+                 const void *option_value, size_t option_len);
+
+enum {
+    UDP_MOD_BROADCAST,  // Permit sending of broadcast messages, takes an int value which is treated like a boolean
+}
 
 
 // -----------------
@@ -142,7 +167,7 @@ int udp_free(TCPSocket* sock);
  */
 struct TCPSocket;
 
-TCPSocket* tcp_mksocket();
+struct TCPSocket* tcp_mksocket();
 /**
  * tcp_bind binds a TCPSocket to a local address and port, which is a prerequisite to tcp_listen_accept
  */
@@ -172,6 +197,7 @@ int tcp_listen(struct TCPSocket *sock,
 int tcp_connect(struct TCPSocket *sock,
                 struct AddrInfo *dest);
 
+
 /**
  * Sends buffer msgbuf of size buflen over active socket sock
  * @param sock a tcp socket that must have an established connection
@@ -184,6 +210,10 @@ int tcp_send(struct TCPSocket *sock,
                 void *msgbuf,
                 size_t buflen,
                 size_t flags);
+enum {
+    TCP_SEND_DONTROUTE,    // data should not be subjected to routing
+    TCP_SEND_OOB           // sends out-of-band data
+};
 
 /**
  * Receives incoming traffic on tcp connections
@@ -198,17 +228,39 @@ int tcp_recv(struct TCPSocket *sock,
                 size_t buflen,
                 size_t flags);
 
+enum {
+    TCP_RECV_PEEK,      // The data is copied into the buffer but is not removed from the input queue,
+                        //     tcp_recv returns the data-size that can be read in a single call
+    TCP_RECV_OOB,       // Process out-of-band data
+    TCP_RECV_WAITALL    // tcp_recv now returns when the buffer is full, the connection has been lost, or the request has been cancelled
+};
+
 /**
  * Closes a tcp socket when you're done with it
  * @return non-zero on failure
  */
-int tcp_free(TCPSocket* sock);
+int tcp_free(struct TCPSocket* sock);
 
+/**
+ * Here we can set special socket options
+ * 
+ * @param sock The socket
+ * @param flags Flag we want to set
+ * @param option_value Pointer to the value we want to set, if we're setting a flag with a value
+ * @param option_len size of argument we're passing
+ * @return zero on success.
+ */
+int tcp_mod_sock(struct TCPSocket *sock, int flags,
+                 const void *option_value, size_t option_len);
+
+enum {
+    TCP_MOD_KEEPALIVE,  // Keeps connections active by enabling periodic transmission of messages, takes int value
+    TCP_MOD_DONTROUTE,  // Request that outgoing messages bypass standard routing
+    TCP_MOD_RCVTIMEO,   // Sets the timeout, in milliseconds, for blocking receive calls
+}
 
 /**
  * Get a string description of an error
  * @return null-terminated error string
  */
 char* get_error(int errnum);
-
-// TODO: Add flags enums, figure out if bytes received is same as bytes stored, https://stackoverflow.com/questions/4160347/close-vs-shutdown-socket
